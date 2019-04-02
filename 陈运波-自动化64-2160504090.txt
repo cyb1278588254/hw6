@@ -1,0 +1,210 @@
+T1.m
+%在测试图像上产生高斯噪声lena图
+close all;clear all;clc;
+I=imread('lena.bmp');
+figure;
+subplot(2,3,1);
+imshow(I);
+title('lena原始图像');
+I2=imnoise(I,'gaussian',0,0.01);
+subplot(2,3,2);
+imshow(I2);
+title('u=0，s^2=0.01');
+I3=imnoise(I,'gaussian',0,0.05);
+subplot(2,3,3);
+imshow(I3);
+title('u=0，s^2=0.05');
+I4=imnoise(I,'gaussian',0,0.1);
+subplot(2,3,4);
+imshow(I4);
+title('u=0，s^2=0.1');
+I5=imnoise(I,'gaussian',0.1,0.01);
+subplot(2,3,5);
+imshow(I5);
+title('u=0.1，s^2=0.01');
+I6=imnoise(I,'gaussian',0.5,0.01);
+subplot(2,3,6);
+imshow(I6);
+title('u=0.5，s^2=0.01');
+
+close all;clear all;clc;
+I=imread('lena.bmp');
+figure(1);
+I2=imnoise(I,'gaussian',0.1,0.01);
+subplot(1,2,1);
+imshow(I2);
+title('高斯噪声u=0.1，s^2=0.01');
+%算术均值滤波恢复图像
+b=5;  
+H=1/b^2.*ones(b,b);
+I3=conv2(I2,H,'same'); 
+I3=uint8(I3);
+subplot(1,2,2);
+imshow(I3); 
+title('算术均值滤波恢复的图像');
+
+figure(2);
+subplot(1,2,1);
+imshow(I2);
+title('高斯噪声u=0.1，s^2=0.01');
+%几何均值滤波恢复图像
+[a,b]=size(I2);
+f=double(I2);
+for i=2:a-1;
+   for j=2:b-1;
+       I4(i,j)= (f(i,j)*f(i-1,j-1)*f(i-1,j)*f(i-1,j+1)*f(i,j-1)*f(i,j+1)*f(i+1,j-1)*f(i+1,j)*f(i+1,j+1))^(1/9);
+   end
+ end
+I4=uint8(I4);
+subplot(1,2,2);
+imshow(I4);
+title('几何均值滤波恢复的图像'); 
+
+figure(3);
+subplot(1,2,1);
+imshow(I2);
+title('高斯噪声u=0.1，s^2=0.01');
+%中值滤波恢复图像
+I5= medfilt2(I2,[5,5]);
+subplot(1,2,2);
+imshow(I5);
+title('中值滤波恢复的图像');
+
+T2.m
+close all;clear all;clc;
+I=imread('lena.bmp');
+figure(1);
+I2=imnoise(I,'salt & pepper',0.1); 
+subplot(1,2,1);
+imshow(I2);
+title('加入椒盐噪声后的lena图像');
+%算术均值滤波恢复图像
+b=5;  
+H=1/b^2.*ones(b,b);
+I3=conv2(I2,H,'same'); 
+I3=uint8(I3);
+subplot(1,2,2);
+imshow(I3); 
+title('算术均值滤波恢复的图像');
+
+figure(2);
+subplot(1,2,1);
+imshow(I2);
+title('加入椒盐噪声后的lena图像');
+%中值滤波恢复图像
+I4= medfilt2(I2,[5,5]);
+subplot(1,2,2);
+imshow(I4);
+title('中值滤波恢复的图像');
+
+figure(3);
+subplot(2,2,[1,3]);
+imshow(I2);
+title('高斯噪声u=0.1，s^2=0.01');
+%逆谐波均值滤波恢复图像
+[a,b]=size(I2);
+n2=3;
+n3=fix(n2/2);
+Q1=0.5;
+Q2=-1.5;
+for i=(1+n3):(a-n3)
+    for j=(1+n3):(a-n3)
+        g=I2((i-n3):(i+n3),(j-n3):(j+n3));
+        g=double(g);
+        g1=g.^(Q1+1);
+        g2=g.^Q1;
+        I5(i,j)=sum(g1(:))/sum(g2(:));
+    end
+end
+subplot(2,2,2);
+imshow(I5,[])
+title('逆谐波均值滤波后图像（Q>0)')
+for i=(1+n3):(a-n3)
+    for j=(1+n3):(a-n3)
+        g=I2((i-n3):(i+n3),(j-n3):(j+n3));
+        g=double(g);
+        g1=g.^(Q2+1);
+        g2=g.^Q2;
+        I6(i,j)=sum(g1(:))/sum(g2(:));
+    end
+end
+subplot(2,2,4);
+imshow(I6,[])
+title('逆谐波均值滤波后图像（Q<0)')
+
+T3.m
+%得到运动模糊加高斯噪声后的模糊lena图像
+close all;clear all;clc;
+I=imread('lena.bmp');
+figure(1);
+subplot(1,2,1);
+imshow(I);
+title('lena原始图像');
+f=double(I);     
+F=fftshift(fft2(f));%转换到频域     
+[m,n]=size(F);
+a=0.1;
+b=0.1;
+T=1;
+for u=1:m
+    for v=1:n    
+        H(u,v)=(T/(pi*(u*a+v*b)))*sin(pi*(u*a+v*b))*exp(-sqrt(-1)*pi*(u*a+v*b));
+        G(u,v)=F(u,v)*H(u,v);
+    end
+end
+g=ifft2(ifftshift(G)); %转换到空域
+g=256.*g./max(max(g));
+g=uint8(real(g));
+subplot(1,2,2);
+imshow(g);
+title('运动引起的模糊lena图像');
+figure(2);
+subplot(1,2,1);
+imshow(g);
+title('运动引起的模糊lena图像');
+I2=imnoise(g,'gaussian',0,0.01);
+subplot(1,2,2);
+imshow(I2);
+title('再添加高斯噪声后的模糊lena图像');
+imwrite(I2,'运动模糊加高斯噪声后的模糊lena图像.bmp');
+
+%维纳滤波恢复图像
+close all;clear all;clc;
+I=imread('运动模糊加高斯噪声后的模糊lena图像.bmp');
+subplot(1,2,1);
+imshow(I);
+title('运动模糊加高斯噪声后的模糊lena图像');
+f=double(I);     
+F=fftshift(fft2(f));%转换到频域     
+[m,n]=size(F);
+a=0.1;
+b=0.1;
+T=1;
+K=0.025;
+for u=1:m
+    for v=1:n   
+     H(u,v)=(T/(pi*(u*a+v*b)))*sin(pi*(u*a+v*b))*exp(-sqrt(-1)*pi*(u*a+v*b));
+     G(u,v)=1/H(u,v)*(abs(H(u,v)))^2/((abs(H(u,v)))^2+K)*F(u,v);
+    end
+end
+g=ifft2(ifftshift(G)); %转换到空域
+g=256.*g./max(max(g));
+g=uint8(real(g));
+subplot(1,2,2);
+imshow(g);
+title('维纳滤波的结果');
+%约束最小二乘滤波恢复图像
+I=imread('lena.bmp');
+h=fspecial('motion',50,45);
+I1=imfilter(I,h,'circular','conv');
+I2=imnoise(I1,'gaussian',0,0.01);
+figure;
+subplot(1,2,1);
+imshow(I2);
+title('运动模糊加高斯噪声后的模糊lena图像');
+V=0.00001;
+NP=V*prod(size(I));
+[J,LAGRA]=deconvreg(I1,h,NP);
+subplot(1,2,2);
+imshow(J);
+title('约束最小二乘滤波结果');
